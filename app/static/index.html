@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Workout & Nutrition API Demo</title>
+</head>
+<body>
+  <h2>Workout + Nutrition Recommendation Demo</h2>
+
+  <label>Weight (kg): <input id="weight" value="72"></label><br>
+  <label>Height (cm): <input id="height" value="175"></label><br>
+  <label>Age: <input id="age" value="22"></label><br>
+
+  <label>Goal:
+    <select id="goal">
+      <option value="fat_loss">Fat Loss</option>
+      <option value="muscle_gain" selected>Muscle Gain</option>
+      <option value="maintenance">Maintenance</option>
+    </select>
+  </label><br>
+
+  <label>Experience Level:
+    <select id="experience">
+      <option value="beginner">Beginner</option>
+      <option value="intermediate" selected>Intermediate</option>
+      <option value="advanced">Advanced</option>
+    </select>
+  </label><br>
+
+  <label>Training Days / Week:
+    <input id="days" type="number" min="1" max="7" value="4">
+  </label><br>
+
+
+  <label>Equipment:
+    <select id="equipment">
+      <option value="bodyweight">Bodyweight</option>
+      <option value="dumbbell">Dumbbell</option>
+      <option value="gym" selected>Gym</option>
+    </select>
+  </label><br>
+
+  <h3>Dietary Preferences</h3>
+  <label><input type="checkbox" value="gluten_free" class="pref"> Gluten Free</label><br>
+  <label><input type="checkbox" value="lactose_free" class="pref"> Lactose Free</label><br>
+  <label><input type="checkbox" value="vegetarian" class="pref"> Vegetarian</label><br>
+  <label><input type="checkbox" value="vegan" class="pref"> Vegan</label><br>
+
+  <h3>Allergies (comma separated)</h3>
+  <input id="allergies" placeholder="e.g. peanuts, yogurt"><br><br>
+
+  <button onclick="submitForm()">Generate</button>
+  <h3>Load Existing Recommendation</h3>
+  <input id="rec_id" placeholder="Recommendation ID">
+  <button onclick="loadRecommendation()">Load</button>
+
+  <pre id="output"></pre>
+
+  <script>
+    async function submitForm() {
+      const preferences = Array.from(
+        document.querySelectorAll(".pref:checked")
+      ).map(cb => cb.value);
+
+      const allergies = document
+        .getElementById("allergies")
+        .value
+        .split(",")
+        .map(a => a.trim())
+        .filter(Boolean);
+
+      const payload = {
+        user_stats: {
+          age: Number(age.value),
+          sex: "male",
+          height_cm: Number(height.value),
+          weight_kg: Number(weight.value),
+          activity_level: "moderate",
+          equipment: equipment.value
+        },
+        goals: {
+          goal_type: goal.value,
+          training_days_per_week: 4,
+          experience_level: "beginner"
+        },
+        dietary_restrictions: {
+          preferences,
+          allergies
+        }
+      };
+
+      const res = await fetch("/v1/recommendations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      document.getElementById("rec_id").value = data.id;
+      document.getElementById("output").textContent =
+        JSON.stringify(data, null, 2);
+    }
+
+    async function loadRecommendation() {
+      const id = document.getElementById("rec_id").value;
+      if (!id) return;
+
+      const res = await fetch(`/v1/recommendations/${id}`);
+      const data = await res.json();
+
+      document.getElementById("output").textContent =
+        JSON.stringify(data, null, 2);
+    }
+  </script>
+
+
+</body>
+</html>

@@ -40,7 +40,7 @@ def calculate_macros(
     # Fat
     fat_g = floor(weight_kg * 0.8)
 
-    # Remaining calories → carbs
+    # Remaining calories, carbs
     protein_cal = protein_g * 4
     fat_cal = fat_g * 9
     remaining_cal = calories - (protein_cal + fat_cal)

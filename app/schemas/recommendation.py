@@ -14,12 +14,12 @@ class UserStats(BaseModel):
         "active",
         "very_active",
     ]
-
-
+    equipment: Literal["gym", "dumbbell", "bodyweight"]
+    
 class Goals(BaseModel):
     goal_type: Literal["fat_loss", "muscle_gain", "maintenance"]
     training_days_per_week: int = Field(..., ge=1, le=7)
-
+    experience_level: Literal["beginner", "intermediate", "advanced"]
 
 class DietaryRestrictions(BaseModel):
     allergies: List[str] = []
@@ -50,4 +50,6 @@ class WorkoutDay(BaseModel):
 class RecommendationResponse(BaseModel):
     nutrition: NutritionTargets
     workout_plan: List[WorkoutDay]
+    meals: List[str]
     notes: str
+
