@@ -19,6 +19,8 @@ from fastapi import Depends
 from app.db.models import Recommendation
 from app.db.deps import get_db
 
+from app.core.errors import api_error
+
 router = APIRouter(prefix="/v1", tags=["recommendations"])
 
 @router.post("/recommendations")
@@ -42,7 +44,7 @@ def generate_recommendation(payload: RecommendationRequest,db: Session = Depends
         equipment=stats.equipment,
     )
     meals = filter_meals(preferences=payload.dietary_restrictions.preferences,allergies=payload.dietary_restrictions.allergies,)
-
+    
     rec = Recommendation(
         input_payload=payload.model_dump(),
         output_payload={
@@ -65,8 +67,7 @@ def generate_recommendation(payload: RecommendationRequest,db: Session = Depends
 def get_recommendation(rec_id: int, db: Session = Depends(get_db)):
     rec = db.get(Recommendation, rec_id)
     if not rec:
-        return {"error": "Recommendation not found"}
-
+        api_error(404, "REC_NOT_FOUND", "Recommendation does not exist")
     return {
         "id": rec.id,
         "created_at": rec.created_at,
