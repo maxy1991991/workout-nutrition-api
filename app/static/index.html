@@ -1,10 +1,138 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Workout & Nutrition API Demo</title>
+  <title>Workout & Nutrition Planner</title>
+    <style>
+      :root {
+        --bg: #f7f9fc;
+        --card: #ffffff;
+        --primary: #2563eb;  
+        --primary-dark: #1e40af;
+        --danger: #dc2626;   
+        --muted: #6b7280;
+        --border: #e5e7eb;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 900px;
+        margin: auto;
+        background: var(--bg);
+        padding: 20px;
+        color: #111827;
+      }
+
+      h2 {
+        color: var(--primary);
+      }
+
+      h3 {
+        margin-top: 0;
+      }
+
+      label {
+        display: block;
+        margin: 6px 0;
+      }
+
+      input, select {
+        padding: 6px;
+        margin-top: 4px;
+        width: 100%;
+        max-width: 300px;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+      }
+
+      button {
+        margin-top: 8px;
+        padding: 6px 12px;
+        border-radius: 6px;
+        border: none;
+        background: var(--primary);
+        color: white;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      button:hover {
+        background: var(--primary-dark);
+      }
+
+      button.danger {
+        background: var(--danger);
+      }
+
+      button.danger:hover {
+        opacity: 0.9;
+      }
+
+      hr {
+        border: none;
+        border-top: 1px solid var(--border);
+        margin: 24px 0;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        padding: 12px;
+        margin-top: 12px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      }
+
+      .card b {
+        color: var(--primary);
+      }
+
+      #logoutBtn {
+        background: var(--muted);
+        margin-bottom: 10px;
+      }
+
+      #output {
+        background: #0f172a;
+        color: #e5e7eb;
+        padding: 12px;
+        border-radius: 8px;
+        margin-top: 16px;
+        overflow-x: auto;
+      }
+
+      #auth, #planner, #plans {
+        background: var(--card);
+        padding: 16px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+      }
+    </style>
+
 </head>
 <body>
-  <h2>Workout + Nutrition Recommendation Demo</h2>
+
+<h2>Workout + Nutrition Planner</h2>
+
+<!-- AUTH -->
+<div id="auth">
+  <h3>Login / Register</h3>
+  <input id="email" placeholder="Email"><br>
+  <input id="password" type="password" placeholder="Password"><br>
+  <button onclick="register()">Register</button>
+  <button onclick="login()">Login</button>
+</div>
+
+<button id="logoutBtn" class="hidden" onclick="logout()">Logout</button>
+
+<hr>
+
+<!-- FORM -->
+<div id="planner" class="hidden">
+  <h3>Create / Update Plan</h3>
 
   <label>Weight (kg): <input id="weight" value="72"></label><br>
   <label>Height (cm): <input id="height" value="175"></label><br>
@@ -18,7 +146,7 @@
     </select>
   </label><br>
 
-  <label>Experience Level:
+  <label>Experience:
     <select id="experience">
       <option value="beginner">Beginner</option>
       <option value="intermediate" selected>Intermediate</option>
@@ -26,10 +154,9 @@
     </select>
   </label><br>
 
-  <label>Training Days / Week:
+  <label>Training Days:
     <input id="days" type="number" min="1" max="7" value="4">
   </label><br>
-
 
   <label>Equipment:
     <select id="equipment">
@@ -39,80 +166,190 @@
     </select>
   </label><br>
 
-  <h3>Dietary Preferences</h3>
+  <h4>Dietary Preferences</h4>
   <label><input type="checkbox" value="gluten_free" class="pref"> Gluten Free</label><br>
   <label><input type="checkbox" value="lactose_free" class="pref"> Lactose Free</label><br>
   <label><input type="checkbox" value="vegetarian" class="pref"> Vegetarian</label><br>
   <label><input type="checkbox" value="vegan" class="pref"> Vegan</label><br>
 
-  <h3>Allergies (comma separated)</h3>
-  <input id="allergies" placeholder="e.g. peanuts, yogurt"><br><br>
+  <input id="allergies" placeholder="Allergies (comma separated)"><br><br>
 
-  <button onclick="submitForm()">Generate</button>
-  <h3>Load Existing Recommendation</h3>
-  <input id="rec_id" placeholder="Recommendation ID">
-  <button onclick="loadRecommendation()">Load</button>
+  <button onclick="createPlan()">Create New Plan</button>
+</div>
 
-  <pre id="output"></pre>
+<hr>
 
-  <script>
-    async function submitForm() {
-      const preferences = Array.from(
-        document.querySelectorAll(".pref:checked")
-      ).map(cb => cb.value);
+<!-- MY PLANS -->
+<div id="plans" class="hidden">
+  <h3>My Plans</h3>
+  <div id="planList"></div>
+</div>
 
-      const allergies = document
-        .getElementById("allergies")
-        .value
-        .split(",")
-        .map(a => a.trim())
-        .filter(Boolean);
+<pre id="output"></pre>
 
-      const payload = {
-        user_stats: {
-          age: Number(age.value),
-          sex: "male",
-          height_cm: Number(height.value),
-          weight_kg: Number(weight.value),
-          activity_level: "moderate",
-          equipment: equipment.value
-        },
-        goals: {
-          goal_type: goal.value,
-          training_days_per_week: 4,
-          experience_level: "beginner"
-        },
-        dietary_restrictions: {
-          preferences,
-          allergies
-        }
-      };
+<script>
+function formatDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric"
+  });
+}
 
-      const res = await fetch("/v1/recommendations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
+function goalLabel() {
+  const g = goal.value.replace("_", " ");
+  return g.charAt(0).toUpperCase() + g.slice(1);
+}
 
-      const data = await res.json();
+const API = "";
+let selectedPlanId = null;
 
-      document.getElementById("rec_id").value = data.id;
-      document.getElementById("output").textContent =
-        JSON.stringify(data, null, 2);
+function token() {
+  return localStorage.getItem("token");
+}
+
+function authHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${token()}`
+  };
+}
+
+function buildPayload() {
+  const preferences = Array.from(document.querySelectorAll(".pref:checked"))
+    .map(cb => cb.value);
+
+  const allergies = allergiesInput().split(",").map(a => a.trim()).filter(Boolean);
+
+  return {
+    user_stats: {
+      age: Number(age.value),
+      sex: "male",
+      height_cm: Number(height.value),
+      weight_kg: Number(weight.value),
+      activity_level: "moderate",
+      equipment: equipment.value
+    },
+    goals: {
+      goal_type: goal.value,
+      training_days_per_week: Number(days.value),
+      experience_level: experience.value
+    },
+    dietary_restrictions: {
+      preferences,
+      allergies
     }
+  };
+}
 
-    async function loadRecommendation() {
-      const id = document.getElementById("rec_id").value;
-      if (!id) return;
+function allergiesInput() {
+  return document.getElementById("allergies").value;
+}
 
-      const res = await fetch(`/v1/recommendations/${id}`);
-      const data = await res.json();
+/* AUTH */
+async function register() {
+  await fetch(`/auth/register?email=${email.value}&password=${password.value}`, { method: "POST" });
+  alert("Registered. Now login.");
+}
 
-      document.getElementById("output").textContent =
-        JSON.stringify(data, null, 2);
-    }
-  </script>
+async function login() {
+  const form = new FormData();
+  form.append("email", email.value);
+  form.append("password", password.value);
 
+  const res = await fetch("/auth/login", {
+    method: "POST",
+    body: form
+  });
+
+  if (!res.ok) {
+    alert("Login failed");
+    return;
+  }
+
+  const data = await res.json();
+  localStorage.setItem("token", data.access_token);
+
+  document.getElementById("auth").classList.add("hidden");
+  document.getElementById("planner").classList.remove("hidden");
+  document.getElementById("plans").classList.remove("hidden");
+  document.getElementById("logoutBtn").classList.remove("hidden");
+
+  loadPlans();
+}
+
+function logout() {
+  localStorage.clear();
+  location.reload();
+}
+
+/* CRUD */
+async function createPlan() {
+  const res = await fetch("/v1/recommendations", {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(buildPayload())
+  });
+  document.getElementById("output").textContent =
+    JSON.stringify(await res.json(), null, 2);
+  loadPlans();
+}
+
+async function loadPlans() {
+  const res = await fetch("/v1/recommendations", {
+    headers: authHeaders()
+  });
+
+  const plans = await res.json();
+  const list = document.getElementById("planList");
+  list.innerHTML = "";
+
+  plans.forEach((p, index) => {
+    const dateLabel = formatDate(p.created_at);
+
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
+      <b>Plan from ${dateLabel}</b><br>
+      ${goalLabel()} <br><br>
+      <button onclick="viewPlan(${p.id})">View</button>
+      <button onclick="updatePlan(${p.id})">Update</button>
+      <button onclick="deletePlan(${p.id})">Delete</button>
+    `;
+
+    list.appendChild(div);
+  });
+}
+
+
+async function viewPlan(id) {
+  const res = await fetch(`/v1/recommendations/${id}`, {
+    headers: authHeaders()
+  });
+  document.getElementById("output").textContent =
+    JSON.stringify(await res.json(), null, 2);
+}
+
+async function updatePlan(id) {
+  const res = await fetch(`/v1/recommendations/${id}`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(buildPayload())
+  });
+  document.getElementById("output").textContent =
+    JSON.stringify(await res.json(), null, 2);
+  loadPlans();
+}
+
+async function deletePlan(id) {
+  if (!confirm("Delete this plan?")) return;
+  await fetch(`/v1/recommendations/${id}`, {
+    method: "DELETE",
+    headers: authHeaders()
+  });
+  loadPlans();
+}
+</script>
 
 </body>
 </html>
